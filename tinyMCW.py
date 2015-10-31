@@ -1,10 +1,11 @@
 import pexpect
 import re
 import sys
+import os
 from time import sleep
 from glob import glob
 from collections import defaultdict
-from importlib import import_module
+from importlib import import_module, invalidate_caches
 linere = re.compile(r"\[(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\] \[(?P<thread>[^/]+)\/(?P<level>\w+)\]: (?P<message>.*)")
 chatre = re.compile(r"<(?P<player>\w+)> (?P<message>.*)")
 sayre = re.compile(r"\[\w+\] (?P<message>.*)")
@@ -15,20 +16,29 @@ class Minecraft():
     def __init__(self, filename="minecraft_server.jar"):
         self.proc = pexpect.spawn("java -jar {}".format(filename))
         self.players = set()
-        self._hooks = defaultdict(list)
         self.load_plugins()
     def load_plugins(self):
+        self._hooks = defaultdict(list)
         for plugin in glob("plugins/*.py"):
             print("Loading plugin",plugin, file=sys.stderr)
             p = import_module(plugin.replace("/",".").replace(".py",""))
             for hook in p._hooks:
                 self._hooks[hook].append(p._hooks[hook])
     def call_hooks(self, hookid, **kwargs):
+        rv = None
         for hook in self._hooks.get(hookid,()):
-            hook(mc=self, **kwargs)
+            rv = hook(mc=self, **kwargs)
+        return rv
     def send(self, message):
         print(">",message,file=sys.stderr)
         self.proc.sendline(message)
+    """
+    def restart(self):
+        '''Restart tinyMCW, not just Minecraft. But Minecraft, too.'''
+        self.proc.sendline("stop")
+        mc.proc.expect(pexpect.EOF, timeout=None)
+        os.execv(__file__, sys.argv)
+    """
 
 mc = Minecraft()
 
@@ -71,4 +81,5 @@ while True:
     except pexpect.TIMEOUT:
         pass
     except pexpect.EOF:
-        break
+        if mc.call_hooks('shutdown') is None:
+            break
