@@ -6,8 +6,6 @@ from glob import glob
 from collections import defaultdict
 from importlib import import_module
 
-mc = pexpect.spawn("java -jar minecraft_server.jar")
-
 hooks = defaultdict(list)
 
 for plugin in glob("plugins/*.py"):
@@ -15,17 +13,18 @@ for plugin in glob("plugins/*.py"):
     p = import_module(plugin.replace("/",".").replace(".py",""))
     for hook in p._hooks:
         hooks[hook].append(p._hooks[hook])
+class Minecraft():
+    def __init__(self, proc)
+        self.proc = proc
+        self.players = set()
+    def send(self, message):
+        print(">",message,file=sys.stderr)
+        self.mc.sendline(message)
 
-linere = re.compile(r"\[(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\] \[(?P<thread>[^/]+)\/(?P<level>\w+)\]: (?P<message>.*)")
-chatre = re.compile(r"<(?P<player>\w+)> (?P<message>.*)")
-sayre = re.compile(r"\[\w+\] (?P<message>.*)")
-joinleftre = re.compile(r"(?P<player>\w+) (?P<change>joined|left) the game")
+mcproc = pexpect.spawn("java -jar minecraft_server.jar")
+mc = Minecraft(mcproc)
 
-players = set()
 
-def send(command, mc):
-    print("> {}".format(command),file=sys.stderr)
-    mc.sendline(command)
 
 def handle_chat(message, player, fields, mc):
     for hook in hooks.get('chat',()):
@@ -42,11 +41,6 @@ def handle_say(message, fields, mc):
 def handle_join(player, fields, mc):
     for hook in hooks.get('join',()):
         hook(player=player, mc=mc)
-    '''For the following functionality, we will probably need some global object which everyone gets (instead of mc).
-    We can then have extensible ".send()" methods, etc., and some global properties accessible to plugins.'''
-    if len(players) == 1:
-        old = list(players)[0]
-        send("tp {} {}".format(player, old),mc=mc)
     players.add(player)
 
 def handle_leave(player, fields, mc):
@@ -54,6 +48,10 @@ def handle_leave(player, fields, mc):
         hook(player=player, mc=mc)
     players.remove(player)
 
+linere = re.compile(r"\[(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\] \[(?P<thread>[^/]+)\/(?P<level>\w+)\]: (?P<message>.*)")
+chatre = re.compile(r"<(?P<player>\w+)> (?P<message>.*)")
+sayre = re.compile(r"\[\w+\] (?P<message>.*)")
+joinleftre = re.compile(r"(?P<player>\w+) (?P<change>joined|left) the game")
 def handle(line, mc):
     '''Handles line, calls hooks, etc.'''
     match = linere.match(line)
@@ -83,8 +81,8 @@ def handle(line, mc):
 
 while True:
     try:
-        mc.expect("^.*\r\n", timeout=5)
-        handle(mc.after.decode(), mc=mc)
+        mc.proc.expect("^.*\r\n", timeout=5)
+        handle(mc.proc.after.decode(), mc=mc)
     except pexpect.TIMEOUT:
         pass
     except pexpect.EOF:

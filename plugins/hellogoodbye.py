@@ -1,7 +1,7 @@
 def hello(player, mc):
-    mc.sendline("Hello, {}!".format(player))
+    mc.send("Hello, {}!".format(player))
 
 def goodbye(player, mc):
-    mc.sendline("Goodbye {} :(".format(player))
+    mc.send("Goodbye {} :(".format(player))
 
 _hooks = {"join":hello, "leave":goodbye}
