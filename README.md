@@ -12,11 +12,24 @@ This wrapper script requires Python3 and pexpect (installable through pip), noth
 
 # Usage
 
-Out of the box it does almost nothing, but it will be easily extensible through hooks. As a demonstration, the following additional functionality comes out of the box:
+Out of the box it does almost nothing, but it is easily extensible through plugins. As a demonstration, the following additional functionality comes out of the box, most of it through plugins:
 
 - Greeting every new player and saying goodbye
-- When the second player joins, they are teleported to the first player
+- When the second player joins, they are teleported to the first player (currently not implemented through a plugin)
 - The `!ping` command, to which the server will reply with "pong"
 - `!sethome`, `!home`, and `!delhome`, implemented with armorstands
 
 At the moment, all commands can be run by everyone, but that will change in the near future.
+
+# Extending
+
+Have a look in the plugins folder and look at one of the example plugins. The full list of supported hooks is:
+
+- `join`
+- `leave`
+- `chat`
+- `command`
+- `all`
+- `say`
+
+(Hopefully, this is up-to-date.)
