@@ -18,6 +18,7 @@ Out of the box it does almost nothing, but it is easily extensible through plugi
 - When the second player joins, they are teleported to the first player (currently not implemented through a plugin)
 - The `!ping` command, to which the server will reply with "pong"
 - `!sethome`, `!home`, and `!delhome`, implemented with armorstands
+- `!strike <playername>`, summons a lightning bolt at some player; demonstration of command arguments
 
 At the moment, all commands can be run by everyone, but that will change in the near future.
 
@@ -33,3 +34,5 @@ Have a look in the plugins folder and look at one of the example plugins. The fu
 - `say`
 
 (Hopefully, this is up-to-date.)
+
+The `mc` object can mostly be used to call `.send()`, but you can also ask for the set of `.players`, or extend it with your own custom attributes.
