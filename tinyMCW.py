@@ -10,19 +10,22 @@ chatre = re.compile(r"<(?P<player>\w+)> (?P<message>.*)")
 sayre = re.compile(r"\[\w+\] (?P<message>.*)")
 joinleftre = re.compile(r"(?P<player>\w+) (?P<change>joined|left) the game")
 
-hooks = defaultdict(list)
-
-for plugin in glob("plugins/*.py"):
-    print("Module found:",plugin, file=sys.stderr)
-    p = import_module(plugin.replace("/",".").replace(".py",""))
-    for hook in p._hooks:
-        hooks[hook].append(p._hooks[hook])
-
 class Minecraft():
     '''Global State Object.'''
     def __init__(self, filename="minecraft_server.jar"):
         self.proc = pexpect.spawn("java -jar {}".format(filename))
         self.players = set()
+        self._hooks = defaultdict(list)
+        self.load_plugins()
+    def load_plugins(self):
+        for plugin in glob("plugins/*.py"):
+            print("Loading plugin",plugin, file=sys.stderr)
+            p = import_module(plugin.replace("/",".").replace(".py",""))
+            for hook in p._hooks:
+                self._hooks[hook].append(p._hooks[hook])
+    def call_hooks(self, hookid, **kwargs):
+        for hook in self._hooks.get(hookid,()):
+            hook(mc=self, **kwargs)
     def send(self, message):
         print(">",message,file=sys.stderr)
         self.proc.sendline(message)
@@ -34,37 +37,31 @@ def handle(line, mc):
     match = linere.match(line)
     if match:
         fields = match.groupdict()
-        for hook in hooks.get('all',()):
-            hook(fields=fields, mc=mc)
+        mc.call_hooks('all',fields=fields)
         print("<",fields['message'],file=sys.stderr)
 
         match = chatre.match(fields['message'])
         if match:
             chat = match.groupdict()
             if chat['message'][0] == "!":
-                for hook in hooks.get('command',()):
-                    command = chat['message'][1:].split()
-                    hook(command=command[0], args=command[1:], player=chat['player'], mc=mc)
+                command = chat['message'][1:].split()
+                mc.call_hooks('command',command=command[0], args=command[1:], player=chat['player'])
             else:
-                for hook in hooks.get('chat',()):
-                    hook(message=chat['message'], player=chat['player'], mc=mc)
+                mc.call_hooks('chat',message=chat['message'], player=chat['player'])
 
         match = sayre.match(fields['message'])
         if match:
             say = match.groupdict()
-            for hook in hooks.get('say',()):
-                hook(message=say['message'], mc=mc)
+            mc.call_hooks('say',message=say['message'])
 
         match = joinleftre.match(fields['message'])
         if match:
             joinleft = match.groupdict()
             if joinleft['change'] == "joined":
-                for hook in hooks.get('join',()):
-                    hook(player=joinleft['player'], mc=mc)
+                mc.call_hooks('join',player=joinleft['player'])
                 mc.players.add(joinleft['player'])
             else:
-                for hook in hooks.get('leave',()):
-                    hook(player=joinleft['player'], mc=mc)
+                mc.call_hooks('leave',player=joinleft['player'])
                 mc.players.remove(joinleft['player'])
 
 while True:
