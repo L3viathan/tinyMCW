@@ -32,13 +32,6 @@ class Minecraft():
     def send(self, message):
         print(">",message,file=sys.stderr)
         self.proc.sendline(message)
-    """
-    def restart(self):
-        '''Restart tinyMCW, not just Minecraft. But Minecraft, too.'''
-        self.proc.sendline("stop")
-        mc.proc.expect(pexpect.EOF, timeout=None)
-        os.execv(__file__, sys.argv)
-    """
 
 mc = Minecraft()
 
